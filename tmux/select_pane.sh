@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
-# Select pane in a direction, skipping spacer panes.
+# Select pane in a direction, skipping spacer panes in team mode.
+# In normal triple layout, spacers are the user's terminals and navigable.
 # Usage: select_pane.sh {-L|-R|-U|-D}
 
 set -eu
@@ -8,7 +9,9 @@ DIR="$1"
 
 tmux select-pane "$DIR"
 
-# If we landed on a spacer, keep going in the same direction
-if [ "$(tmux show-option -pqv @is_spacer)" = "1" ]; then
-    tmux select-pane "$DIR" 2>/dev/null || tmux select-pane -t '{last}'
+# Auto-focus: expand the focused agent pane vertically in team mode.
+# Runs here (not on a hook) to avoid conflicts with Claude Code's
+# own pane management --- only triggers on manual navigation.
+if [ "$(tmux show-option -wqv @team_mode)" = "1" ]; then
+    ~/.tmux/layout.sh auto-focus 2>/dev/null || true
 fi

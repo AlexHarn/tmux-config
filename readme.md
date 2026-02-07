@@ -14,6 +14,7 @@ Table of contents
 1. [Status line](#status-line)
 1. [Nested tmux sessions](#nested-tmux-sessions)
 1. [Ultrawide layout system](#ultrawide-layout-system)
+1. [Agent team layout](#agent-team-layout)
 1. [Copy mode](#copy-mode)
 1. [Clipboard integration](#clipboard-integration)
 1. [Themes and customization](#themes-and-customization)
@@ -24,6 +25,7 @@ Features
 - 3-level tmux nesting: laptop (L1) → dev node (L2) → compute node (L3)
 - independent toggle keys: `C-f` for L1 ↔ inner, `C-g` for L2 ↔ L3
 - ultrawide monitor layout system with auto-tripling new windows
+- agent team layout for Claude Code (or similar multi-agent tools) with auto-focus resizing
 - local vs remote vs compute node specific session configuration
 - scroll and copy mode improvements
 - integration with system clipboard (works for local, remote, and nested session scenarios)
@@ -120,6 +122,9 @@ So `~/.tmux.conf` overrides default key bindings for many actions, to make them 
 | `<prefix> Q` | Kill current session (with confirmation) |
 | `<prefix> 3` | Triple column layout (see [Ultrawide](#ultrawide-layout-system)) |
 | `<prefix> u` | Toggle ultrawide mode on/off |
+| `<prefix> t` | Rearrange into agent team layout (see [Agent team layout](#agent-team-layout)) |
+| `<prefix> y` | Restore standard triple layout, kill agent panes |
+| `<prefix> =` | Rebalance all panes (tiled fallback) |
 | `<prefix> C-u` | Merge current session with another |
 | `<prefix> d` | Detach from session |
 | `<prefix> D` | Detach other clients from session |
@@ -239,6 +244,62 @@ Press `<prefix> 3` or open a new window (`C-t`) in ultrawide mode to get a three
 ### Smart fallback
 
 If the terminal is narrower than the configured center width, triple layout gracefully falls back to equal splits or stays single-pane.
+
+
+Agent team layout
+------------------
+
+For multi-agent workflows (e.g., Claude Code agentic teams) where multiple agent panes need to coexist with your main working pane on an ultrawide monitor.
+
+### The problem
+
+Tools like Claude Code spawn agent teammates as vertical splits to the right of the lead pane. On ultrawide monitors this wastes space and makes agent output unreadable. You also lose your side panes (spacers) in the process.
+
+### Team layout
+
+Press `<prefix> t` after all agents have spawned to rearrange into a 3-column layout:
+
+```
+┌─────────┬──────┬──────┬─────────┐
+│         │ spacer │ spacer │         │
+│ agent 1 ├──────┴──────┤ agent 3 │
+│         │             │         │
+├─────────┤    lead     ├─────────┤
+│         │  (120 cols) │         │
+│ agent 2 │             │ agent 4 │
+└─────────┴─────────────┴─────────┘
+```
+
+- **Lead** (center pane) gets 75% of the center column height.
+- **Spacers** (your original side terminals) are tucked above the lead, taking 25%.
+- **Agents** are distributed evenly across left and right columns.
+- Accent colors are restored (Claude Code overrides them).
+
+### Auto-focus
+
+When navigating between panes with `C-h/j/k/l`:
+
+- **Agent pane focused**: expands vertically to 60% of its column, siblings shrink.
+- **Spacer focused**: expands horizontally (other spacer shrinks to ~4 cols), spacer row grows to 50%.
+- **Lead focused**: spacers equalize width, row shrinks back to 25%.
+
+This is triggered from `select_pane.sh` (not a tmux hook) to avoid conflicts with Claude Code's own pane management.
+
+### Restoring
+
+Press `<prefix> y` to kill all agent panes, move spacers back to their original side positions, and restore the standard triple layout with correct accent colors.
+
+### Configuration
+
+| Option | Default | Description |
+|--------|---------|-------------|
+| `@team_spacer_split` | `h` | Spacer arrangement: `h` = side by side, `v` = stacked |
+| `@center_width` | `120` | Center column width (shared with triple layout) |
+
+### Important notes
+
+- **No tmux hooks**: `after-split-window` and `pane-focus-in` hooks conflict with Claude Code's tmux management. The team layout is invoked manually.
+- The workflow is: let agents spawn → wait for them to settle → `<prefix> t` to rearrange → work → `<prefix> y` to restore.
 
 
 Copy mode
