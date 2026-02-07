@@ -413,8 +413,9 @@ cmd_auto_focus() {
         return
     fi
 
-    # --- Lead focused: equalize spacers, shrink spacer row back to 25% ---
+    # --- Lead focused: reset everything to default sizes ---
     if [ "$(get_pane_option "$current" @is_center)" = "1" ]; then
+        # Equalize spacers and shrink spacer row back to 25%
         if [ "${#spacers[@]}" -ge 2 ]; then
             local center_width
             center_width=$(get_option @center_width)
@@ -423,10 +424,29 @@ cmd_auto_focus() {
             for sp in "${spacers[@]}"; do
                 tmux resize-pane -t "$sp" -x "$half_w" 2>/dev/null || true
             done
-            # Shrink spacer row back to 25%
             tmux resize-pane -t "${spacers[0]}" -y "$(( window_height * 25 / 100 ))" 2>/dev/null || true
         elif [ "${#spacers[@]}" -eq 1 ]; then
             tmux resize-pane -t "${spacers[0]}" -y "$(( window_height * 25 / 100 ))" 2>/dev/null || true
+        fi
+
+        # Equalize agent pane heights in left and right columns
+        local -a left_col=() right_col=()
+        local center_x
+        center_x=$(tmux display-message -p -t "$current" '#{pane_left}')
+        while IFS=$'\t' read -r pid px; do
+            if [ "$(get_pane_option "$pid" @is_center)" = "1" ]; then continue; fi
+            if [ "$(get_pane_option "$pid" @is_spacer)" = "1" ]; then continue; fi
+            if [ "$px" -lt "$center_x" ]; then
+                left_col+=("$pid")
+            else
+                right_col+=("$pid")
+            fi
+        done < <(tmux list-panes -F '#{pane_id}	#{pane_left}')
+        if [ "${#left_col[@]}" -gt 0 ]; then
+            equalize_column "${left_col[@]}"
+        fi
+        if [ "${#right_col[@]}" -gt 0 ]; then
+            equalize_column "${right_col[@]}"
         fi
         return
     fi

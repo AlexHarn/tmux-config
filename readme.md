@@ -261,7 +261,7 @@ Press `<prefix> t` after all agents have spawned to rearrange into a 3-column la
 
 ```
 ┌─────────┬──────┬──────┬─────────┐
-│         │ spacer │ spacer │         │
+│         │ term │ term │         │
 │ agent 1 ├──────┴──────┤ agent 3 │
 │         │             │         │
 ├─────────┤    lead     ├─────────┤
@@ -271,7 +271,7 @@ Press `<prefix> t` after all agents have spawned to rearrange into a 3-column la
 ```
 
 - **Lead** (center pane) gets 75% of the center column height.
-- **Spacers** (your original side terminals) are tucked above the lead, taking 25%.
+- **Term** panes (your original side terminals) are tucked above the lead, taking 25%.
 - **Agents** are distributed evenly across left and right columns.
 - Accent colors are restored (Claude Code overrides them).
 
@@ -280,8 +280,8 @@ Press `<prefix> t` after all agents have spawned to rearrange into a 3-column la
 When navigating between panes with `C-h/j/k/l`:
 
 - **Agent pane focused**: expands vertically to 60% of its column, siblings shrink.
-- **Spacer focused**: expands horizontally (other spacer shrinks to ~4 cols), spacer row grows to 50%.
-- **Lead focused**: spacers equalize width, row shrinks back to 25%.
+- **Term pane focused**: expands horizontally (other term pane shrinks to ~4 cols), row grows to 50%.
+- **Lead focused**: all panes reset to default sizes (agents equalize, term row shrinks to 25%).
 
 This is triggered from `select_pane.sh` (not a tmux hook) to avoid conflicts with Claude Code's own pane management.
 
