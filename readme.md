@@ -13,6 +13,7 @@ Table of contents
 1. [Key bindings](#key-bindings)
 1. [Status line](#status-line)
 1. [Nested tmux sessions](#nested-tmux-sessions)
+1. [Session persistence](#session-persistence)
 1. [Ultrawide layout system](#ultrawide-layout-system)
 1. [Agent team layout](#agent-team-layout)
 1. [Copy mode](#copy-mode)
@@ -36,7 +37,9 @@ Features
 - highlight focused pane
 - merge current session with existing one (move all windows)
 - configurable visual theme/colors, with some elements borrowed from [Powerline](https://github.com/powerline/powerline)
-- integration with 3rd party plugins: [tmux-sidebar](https://github.com/tmux-plugins/tmux-sidebar), [tmux-copycat](https://github.com/tmux-plugins/tmux-copycat), [tmux-open](https://github.com/tmux-plugins/tmux-open), [tmux-plugin-sysstat](https://github.com/samoshkin/tmux-plugin-sysstat)
+- session persistence via [tmux-resurrect](https://github.com/tmux-plugins/tmux-resurrect) and [tmux-continuum](https://github.com/tmux-plugins/tmux-continuum) with per-level save directories and auto-save/restore on L2 and L3
+- per-pane bash history files that survive session restores
+- integration with 3rd party plugins: [tmux-sidebar](https://github.com/tmux-plugins/tmux-sidebar), [tmux-copycat](https://github.com/tmux-plugins/tmux-copycat), [tmux-open](https://github.com/tmux-plugins/tmux-open), [tmux-plugin-sysstat](https://github.com/samoshkin/tmux-plugin-sysstat), [tmux-resurrect](https://github.com/tmux-plugins/tmux-resurrect), [tmux-continuum](https://github.com/tmux-plugins/tmux-continuum)
 
 **Status line widgets**:
 
@@ -44,7 +47,7 @@ Features
 - CPU, memory usage, system load average metrics
 - username and hostname, current date time
 - battery information in status line
-- SLURM job ID on compute nodes (L3)
+- color-coded SLURM remaining time on compute nodes (L3): green > 3.5 days, yellow 1--3.5 days, red < 1 day
 - visual indicator when you press `prefix`
 - visual indicator when you're in `Copy` mode
 - visual indicator when pane is zoomed
@@ -129,6 +132,8 @@ So `~/.tmux.conf` overrides default key bindings for many actions, to make them 
 | `<prefix> d` | Detach from session |
 | `<prefix> D` | Detach other clients from session |
 | `<prefix> C-s` | Toggle status bar visibility |
+| `<prefix> F5` | Save tmux session (resurrect) |
+| `<prefix> F6` | Restore tmux session (resurrect) |
 | `<prefix> m` | Monitor current window for activity |
 | `<prefix> M` | Monitor current window for silence |
 
@@ -150,7 +155,7 @@ The status line is kept dense and informative.
 - date and time, battery (L1 only)
 - online/offline indicator
 
-On L3 (compute node), a SLURM job ID widget replaces date/time and battery.
+On L3 (compute node), a color-coded remaining SLURM job time widget replaces date/time and battery. The color indicates urgency: green (> 3.5 days), yellow (1--3.5 days), red (< 1 day).
 
 Window tabs use Powerline arrow glyphs, so you need to install a Powerline-enabled font. See [Powerline docs](https://powerline.readthedocs.io/en/latest/installation.html#fonts-installation) for instructions and here is the [collection of patched fonts for powerline users](https://github.com/powerline/fonts).
 
@@ -209,7 +214,33 @@ Levels are detected automatically:
 | `tmux.conf` | Base config (L1). C-f toggle, all shared settings. |
 | `tmux.remote.conf` | L2 overrides. Status bar at bottom, C-g toggle. |
 | `tmux.compute.conf` | L3 overrides. Blue accent, SLURM widget, unbinds all nesting keys. |
-| `slurm_info.sh` | Helper script displaying SLURM job ID in L3 status bar. |
+| `slurm_info.sh` | Helper script displaying color-coded remaining SLURM job time in L3 status bar. |
+
+
+Session persistence
+--------------------
+
+Sessions on L2 and L3 are ephemeral --- SLURM walltime limits and dev node CPU limits kill them unpredictably. [tmux-resurrect](https://github.com/tmux-plugins/tmux-resurrect) and [tmux-continuum](https://github.com/tmux-plugins/tmux-continuum) automatically save and restore session state (windows, panes, working directories, and simple programs like `htop` and `watch`) across these resets.
+
+### Per-level behavior
+
+| Level | Auto-save | Auto-restore | Save directory |
+|-------|-----------|--------------|----------------|
+| L1 (laptop) | off | off | `~/.tmux/resurrect-L1` |
+| L2 (dev node) | every 15 min | on tmux start | `~/.tmux/resurrect-L2` |
+| L3 (compute) | every 5 min | on tmux start | `~/.tmux/resurrect-L3` |
+
+Separate save directories on NFS home prevent cross-level restore accidents. Manual save/restore is available on all levels via `<prefix> F5` / `<prefix> F6`.
+
+### Per-pane bash history
+
+Each tmux pane gets its own `HISTFILE` based on `session:window_index:pane_index`, stored in `~/.tmux/history-L{1,2,3}/`. Since resurrect preserves window and pane indices, history files map back to the correct pane after restore. Commands are flushed after every prompt (`history -a`), so no history is lost to ungraceful kills.
+
+### What restores and what doesn't
+
+**Automatic**: windows, panes, working directories, `htop`, `watch` (with original arguments), pane contents, bash history.
+
+**Manual restart needed**: SSH connections, running scripts (Python, Snakemake), conda activations.
 
 
 Ultrawide layout system
