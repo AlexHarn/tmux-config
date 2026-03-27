@@ -12,8 +12,10 @@
 SYSSTAT_INTERVAL=5
 SLURM_INTERVAL=60
 
-CPU_SCRIPT="$HOME/.tmux/plugins/tmux-plugin-sysstat/scripts/cpu.sh"
-MEM_SCRIPT="$HOME/.tmux/plugins/tmux-plugin-sysstat/scripts/mem.sh"
+SYSSTAT_DIR="$HOME/.tmux/plugins/tmux-plugin-sysstat/scripts"
+CPU_SCRIPT="$SYSSTAT_DIR/cpu.sh"
+MEM_SCRIPT="$SYSSTAT_DIR/mem.sh"
+LOADAVG_SCRIPT="$SYSSTAT_DIR/loadavg.sh"
 SLURM_SCRIPT="$HOME/.tmux/slurm_info.sh"
 
 # Store PID so the daemon can be stopped cleanly.
@@ -31,6 +33,7 @@ while tmux has-session 2>/dev/null; do
 
     tmux set -gq @sysstat_cpu "$("$CPU_SCRIPT" 2>/dev/null)"
     tmux set -gq @sysstat_mem "$("$MEM_SCRIPT" 2>/dev/null)"
+    [ -x "$LOADAVG_SCRIPT" ] && tmux set -gq @sysstat_loadavg "$("$LOADAVG_SCRIPT" 2>/dev/null)"
 
     sleep "$SYSSTAT_INTERVAL"
 done
