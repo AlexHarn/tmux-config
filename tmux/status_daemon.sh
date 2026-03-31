@@ -18,7 +18,15 @@ MEM_SCRIPT="$SYSSTAT_DIR/mem.sh"
 LOADAVG_SCRIPT="$SYSSTAT_DIR/loadavg.sh"
 SLURM_SCRIPT="$HOME/.tmux/slurm_info.sh"
 
-# Store PID so the daemon can be stopped cleanly.
+# Self-dedup: kill any previous instance before taking over.
+# This replaces the if-shell kill guard in tmux config files, avoiding a race
+# condition where async if-shell + run-shell -b can kill the wrong daemon
+# (especially on tmux 3.4+ with deferred callback execution).
+old_pid=$(tmux show -gqv @status_daemon_pid 2>/dev/null)
+if [ -n "$old_pid" ] && [ "$old_pid" != "$$" ]; then
+    kill "$old_pid" 2>/dev/null
+    wait "$old_pid" 2>/dev/null
+fi
 tmux set -gq @status_daemon_pid "$$"
 
 last_slurm=0
