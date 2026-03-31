@@ -9,6 +9,9 @@
 # Stop:   kill $(tmux show -gqv @status_daemon_pid)
 # The daemon exits automatically when the tmux server shuts down.
 
+# Exit cleanly on SIGTERM so tmux doesn't report "returned 143".
+trap 'exit 0' TERM
+
 SYSSTAT_INTERVAL=5
 SLURM_INTERVAL=60
 
