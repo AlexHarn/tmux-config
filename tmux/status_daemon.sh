@@ -34,7 +34,7 @@ tmux set -gq @status_daemon_pid "$$"
 
 last_slurm=0
 
-while tmux has-session 2>/dev/null; do
+while tmux list-sessions &>/dev/null; do
     now=$(date +%s)
 
     if (( now - last_slurm >= SLURM_INTERVAL )); then
